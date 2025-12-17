@@ -13,7 +13,7 @@ int score = 0;
 void rotatePiece(int (&out)[4][4], int (&piece)[4][4], bool clockwise);
 void placePiece(int (&board)[HEIGHT][WIDTH], int (&piece)[4][4], int posX, int posY);
 bool canPlace(int (&board)[HEIGHT][WIDTH], int (&piece)[4][4], int posX, int posY);
-void clearFullRows(int (&board)[HEIGHT][WIDTH], int (&piece)[4][4], int posX, int posY);
+void clearFullRows(int (&board)[HEIGHT][WIDTH]);
 void pickRandomPiece(int (&piece)[4][4]);
 void hideCursor();
 void setCursor(int x, int y);
@@ -72,7 +72,7 @@ bool canPlace(int (&board)[HEIGHT][WIDTH], int (&piece)[4][4], int posX, int pos
     return true;
 }
 
-void clearFullRows(int (&board)[HEIGHT][WIDTH], int (&piece)[4][4], int posX, int posY)
+void clearFullRows(int (&board)[HEIGHT][WIDTH])
 {
     for (int row = HEIGHT - 1; row > 0; --row)
     {
@@ -109,18 +109,32 @@ void printBoard(int (&board)[HEIGHT][WIDTH], int (&piece)[4][4], int posX, int p
     for (int i = 0; i < WIDTH * 2; ++i) std::cout << "-";
     std::cout << "+-+" << std::endl;
 
+    std::srand(time(nullptr));
+
     for (int row = 0; row < HEIGHT; ++row) 
     {
         std::cout << "| |";
         
         for (int col = 0; col < WIDTH; ++col) 
         {
-            if (result[row][col] == 0) 
+            const char* colors[] = {
+                "\x1b[0m",       // 0 - reset
+                "\x1b[31m",      // 1 - red
+                "\x1b[32m",      // 2 - green
+                "\x1b[33m",      // 3 - yellow
+                "\x1b[34m",      // 4 - blue
+                "\x1b[35m",      // 5 - magenta
+                "\x1b[36m",      // 6 - cyan
+                "\x1b[37m"       // 7 - white
+            };
+
+            if (result[row][col] != 0) 
+            {
+                std::cout << colors[result[row][col]] << "[]" << colors[0];
+            }
+            else
             {
                 std::cout << "  ";
-            } else 
-            {
-                std::cout << "[]";
             }
         }
 
@@ -151,16 +165,6 @@ void setCursor(int x, int y)
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
 }
 
-void DEBUGprintBoard(int (&board)[HEIGHT][WIDTH]) 
-{
-    for (int i = 0; i < HEIGHT; ++i) {
-        for (int j = 0; j < WIDTH; ++j) {
-            std::cout << board[i][j] << " ";
-        }
-        std::cout << std::endl;
-    }
-}
-
 int main() 
 {
     srand(time(nullptr));
@@ -184,7 +188,7 @@ int main()
     {
         setCursor(0, 0);
 
-        if (_kbhit()) 
+        while (_kbhit()) 
         {
             char ch = _getch();
             if (ch == 'q') break;
@@ -218,19 +222,29 @@ int main()
                     yPos++;
                 }
             }
-        }
-        
-        if (canPlace(board, currentPiece, xPos, yPos + 1)) 
-        {
-            gravityCounter++;
-            if (gravityCounter >= gravityThreshold) 
+            else if (ch == ' ') 
             {
-                yPos++;
-                gravityCounter = 0;
+                for (int dropY = yPos; dropY < HEIGHT; ++dropY) 
+                {
+                    if (!canPlace(board, currentPiece, xPos, dropY)) 
+                    {
+                        yPos = dropY - 1;
+                        break;
+                    }
+                }
             }
-        } else 
+        }
+
+        gravityCounter++;
+        if (gravityCounter >= gravityThreshold) 
         {
-            placePiece(board, currentPiece, xPos, yPos);
+            yPos++;
+            gravityCounter = 0;
+        }
+
+        if (!canPlace(board, currentPiece, xPos, yPos))
+        {
+            placePiece(board, currentPiece, xPos, yPos - 1);
             pickRandomPiece(currentPiece);
             if (!canPlace(board, currentPiece, WIDTH / 2 - 2, 0)) 
             {
@@ -243,10 +257,10 @@ int main()
                 score += 25;
             }
             xPos = WIDTH / 2 - 2;
-            yPos = 0;
+            yPos = 0; 
         }
         
-        clearFullRows(board, currentPiece, xPos, yPos);
+        clearFullRows(board);
         printBoard(board, currentPiece, xPos, yPos);
         Sleep(16); // ~60 FPS
     }

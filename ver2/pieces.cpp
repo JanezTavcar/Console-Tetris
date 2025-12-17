@@ -55,14 +55,17 @@ int (*pieces[7])[4] = { piece_I, piece_O, piece_T, piece_S, piece_Z, piece_J, pi
 
 void pickRandomPiece(int (&out)[4][4]) {
     int index = rand() % 7;
-    memcpy(out, pieces[index], sizeof(int) * 16);
+    int newPiece[4][4];
+    memcpy(newPiece, pieces[index], sizeof(newPiece));
+
+    int color = std::rand() % 7 + 1;
+
+    for (int i = 0; i < 4; ++i)
+        for (int j = 0; j < 4; ++j)
+            if (newPiece[i][j] != 0)
+            {
+                newPiece[i][j] = color;
+            }
+    memcpy(out, newPiece, sizeof(newPiece));
 }
 
-void DEBUGprintPiece(int piece[4][4]) {
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            std::cout << piece[i][j] << " ";
-        }
-        std::cout << std::endl;
-    }
-}
