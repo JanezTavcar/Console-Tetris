@@ -1,4 +1,4 @@
-#include <iostream>
+#include <cstring>
 #include <cstdlib>
 #include "pieces.h"
 

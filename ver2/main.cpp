@@ -1,9 +1,15 @@
 #include <iostream>
 #include <cstring>
-#include <conio.h>
-#include <windows.h>
 
 #include "pieces.h"
+
+#ifdef _WIN32
+  #include "win.h"
+#elif __linux__
+  #include "linux.h"
+#else
+  #error "Unsupported platform"
+#endif
 
 constexpr int WIDTH = 10;
 constexpr int HEIGHT = 24;
@@ -163,26 +169,11 @@ void printBoard(int (&board)[HEIGHT][WIDTH], int (&piece)[4][4], int posX, int p
     std::cout << "Controls: A - left, D - right, W - rotate, S - down" << std::endl;
 }
 
-void hideCursor()
-{
-    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
-    CONSOLE_CURSOR_INFO info;
-    info.dwSize = 1;
-    info.bVisible = FALSE;
-    SetConsoleCursorInfo(h, &info);
-}
-
-void setCursor(int x, int y)
-{
-    COORD coord = { (SHORT)x, (SHORT)y };
-    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
-}
-
 int main() 
 {
     srand(time(nullptr));
     
-    system("cls");
+    clearConsole();
     hideCursor();
 
     memset(gameState.board, 0, sizeof(gameState.board));
@@ -198,9 +189,9 @@ int main()
     {
         setCursor(0, 0);
 
-        while (_kbhit()) 
+        while (keyDown()) 
         {
-            char ch = _getch();
+            char ch = getChar();
             if (ch == 'q') break;
             else if (ch == 'a') 
             {
@@ -271,9 +262,9 @@ int main()
 
         clearFullRows(gameState.board);
         printBoard(gameState.board, gameState.currentPiece, gameState.xPos, gameState.yPos);
-        Sleep(16); // ~60 FPS
+        sleep(16); // ~60 FPS
     }
 
-    system("cls");
+    clearConsole();
     return 0;
 }
