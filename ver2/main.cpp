@@ -5,10 +5,23 @@
 
 #include "pieces.h"
 
-const int WIDTH = 10;
-const int HEIGHT = 24;
+constexpr int WIDTH = 10;
+constexpr int HEIGHT = 24;
 
-int score = 0;
+constexpr int SCORE_INCREASE_PER_ROW = 100;
+constexpr int SCORE_INCREASE_PER_PIECE = 25;
+
+constexpr int gravityThreshold = 20;
+
+struct GameState
+{
+    int board[HEIGHT][WIDTH];
+    int currentPiece[4][4];
+    int xPos;
+    int yPos;
+    int score;
+    int gravityCounter = 0;
+} gameState;
 
 void rotatePiece(int (&out)[4][4], int (&piece)[4][4], bool clockwise);
 void placePiece(int (&board)[HEIGHT][WIDTH], int (&piece)[4][4], int posX, int posY);
@@ -94,7 +107,9 @@ void clearFullRows(int (&board)[HEIGHT][WIDTH])
             }
             memset(board[0], 0, sizeof(board[0]));
 
-            score+=100;
+            gameState.score += SCORE_INCREASE_PER_ROW;
+
+            row++;
         }
     }
 }
@@ -108,8 +123,6 @@ void printBoard(int (&board)[HEIGHT][WIDTH], int (&piece)[4][4], int posX, int p
     std::cout << "+-+";
     for (int i = 0; i < WIDTH * 2; ++i) std::cout << "-";
     std::cout << "+-+" << std::endl;
-
-    std::srand(time(nullptr));
 
     for (int row = 0; row < HEIGHT; ++row) 
     {
@@ -145,7 +158,7 @@ void printBoard(int (&board)[HEIGHT][WIDTH], int (&piece)[4][4], int posX, int p
     for (int i = 0; i < WIDTH * 2; ++i) std::cout << "-";
     std::cout << "+-+" << std::endl;
 
-    std::cout << "Score: " << score << " ";
+    std::cout << "Score: " << gameState.score << " ";
     std::cout << "(Press 'q' to quit)" << std::endl;
     std::cout << "Controls: A - left, D - right, W - rotate, S - down" << std::endl;
 }
@@ -172,17 +185,14 @@ int main()
     system("cls");
     hideCursor();
 
-    int board[HEIGHT][WIDTH];
-    memset(board, 0, sizeof(board));
+    memset(gameState.board, 0, sizeof(gameState.board));
 
-    int currentPiece[4][4];
-    int xPos = WIDTH / 2 - 2;
-    int yPos = 0;
+    gameState.xPos = WIDTH / 2 - 2;
+    gameState.yPos = 0;
 
-    int gravityCounter = 0;
-    const int gravityThreshold = 20;
 
-    pickRandomPiece(currentPiece);
+
+    pickRandomPiece(gameState.currentPiece);
 
     while(true)
     {
@@ -194,74 +204,73 @@ int main()
             if (ch == 'q') break;
             else if (ch == 'a') 
             {
-                if (canPlace(board, currentPiece, xPos - 1, yPos)) 
+                if (canPlace(gameState.board, gameState.currentPiece, gameState.xPos - 1, gameState.yPos)) 
                 {
-                    xPos--;
+                    gameState.xPos--;
                 }
             }
             else if (ch == 'd') 
             {
-                if (canPlace(board, currentPiece, xPos + 1, yPos)) 
+                if (canPlace(gameState.board, gameState.currentPiece, gameState.xPos + 1, gameState.yPos)) 
                 {
-                    xPos++;
+                    gameState.xPos++;
                 }
             }
             else if (ch == 'w') 
             {
                 int rotated[4][4];
-                rotatePiece(rotated, currentPiece, true);
-                if (canPlace(board, rotated, xPos, yPos)) 
+                rotatePiece(rotated, gameState.currentPiece, true);
+                if (canPlace(gameState.board, rotated, gameState.xPos, gameState.yPos)) 
                 {
-                    memcpy(currentPiece, rotated, sizeof(rotated));
+                    memcpy(gameState.currentPiece, rotated, sizeof(rotated));
                 }
             }
             else if (ch == 's') 
             {
-                if (canPlace(board, currentPiece, xPos, yPos + 1)) 
+                if (canPlace(gameState.board, gameState.currentPiece, gameState.xPos, gameState.yPos + 1)) 
                 {
-                    yPos++;
+                    gameState.yPos++;
                 }
             }
             else if (ch == ' ') 
             {
-                for (int dropY = yPos; dropY < HEIGHT; ++dropY) 
+                for (int dropY = gameState.yPos + 1; dropY < HEIGHT; ++dropY) 
                 {
-                    if (!canPlace(board, currentPiece, xPos, dropY)) 
+                    if (!canPlace(gameState.board, gameState.currentPiece, gameState.xPos, dropY)) 
                     {
-                        yPos = dropY - 1;
+                        gameState.yPos = dropY - 1;
                         break;
                     }
                 }
             }
         }
 
-        gravityCounter++;
-        if (gravityCounter >= gravityThreshold) 
+        gameState.gravityCounter++;
+        if (gameState.gravityCounter >= gravityThreshold) 
         {
-            yPos++;
-            gravityCounter = 0;
+            gameState.yPos++;
+            gameState.gravityCounter = 0;
         }
 
-        if (!canPlace(board, currentPiece, xPos, yPos))
+        if (!canPlace(gameState.board, gameState.currentPiece, gameState.xPos, gameState.yPos))
         {
-            placePiece(board, currentPiece, xPos, yPos - 1);
-            pickRandomPiece(currentPiece);
-            if (!canPlace(board, currentPiece, WIDTH / 2 - 2, 0)) 
+            placePiece(gameState.board, gameState.currentPiece, gameState.xPos, gameState.yPos - 1);
+            pickRandomPiece(gameState.currentPiece);
+            if (!canPlace(gameState.board, gameState.currentPiece, WIDTH / 2 - 2, 0)) 
             {
-                // Game Over
                 setCursor(0, HEIGHT + 4);
-                std::cout << "Game Over! Final Score: " << score << std::endl;
+                std::cout << "Game Over! Final Score: " << gameState.score << std::endl;
                 break;
             } else 
             {
-                score += 25;
+                gameState.score += SCORE_INCREASE_PER_PIECE;
             }
-            xPos = WIDTH / 2 - 2;
-            yPos = 0; 
+            gameState.xPos = WIDTH / 2 - 2;
+            gameState.yPos = 0; 
         }
-        
-        clearFullRows(board);
-        printBoard(board, currentPiece, xPos, yPos);
+
+        clearFullRows(gameState.board);
+        printBoard(gameState.board, gameState.currentPiece, gameState.xPos, gameState.yPos);
         Sleep(16); // ~60 FPS
     }
 
